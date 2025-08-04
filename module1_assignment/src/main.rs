@@ -63,29 +63,27 @@ fn main() {
     println!("Can you guess the magic number 0-100: ");
     
     loop {
-
         let mut guess = String::new();
-        
+        io::stdin().read_line(&mut guess).expect("Failed to read line");
+
         let num_guess: i32 = match guess.trim().parse() {
             Ok(num) => num,
             Err(_) => {
                 println!("Invalid input, please enter a number.");
-                continue; // restart loop on invalid input
+                continue;
             }
         };
 
-        if check_guess(num_guess, magic_num) == 0{
-            println!("Your guess is right the magic number is {}.", num_guess);
-        }
-        else if check_guess(num_guess, magic_num) == 1{
-            println!("Your guess is too high try again.");
-        }
+        let result = check_guess(num_guess, magic_num);
 
-        else if check_guess(num_guess, magic_num) == -1{
-            println!("Your guess is too low try again.");
+        if result == 0 {
+            println!("Your guess is right! The magic number is {}.", num_guess);
+            break;
+        } else if result == 1 {
+            println!("Your guess is too high. Try again.");
+        } else {
+            println!("Your guess is too low. Try again.");
         }
-        
-
     }
 
 }
