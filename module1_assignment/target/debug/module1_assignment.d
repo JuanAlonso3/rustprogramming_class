@@ -1,0 +1,1 @@
+/workspaces/rustprogramming_class/module1_assignment/target/debug/module1_assignment: /workspaces/rustprogramming_class/module1_assignment/src/main.rs
