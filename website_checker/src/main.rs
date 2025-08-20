@@ -1,12 +1,13 @@
-// src/main.rs
 use std::error::Error;
 use std::fs;
 use std::thread;
 use std::time::Duration;
 
 use website_checker::concurrent;
-use website_checker::stats::Stats; // ensure lib.rs: pub mod stats;
+use website_checker::stats::Stats; // stats module for computing summaries
 
+// Reads URLs from a text file, ignoring empty lines and comments.
+// Returns a vector of strings with cleaned URLs.
 fn read_urls_from_file(path: &str) -> Result<Vec<String>, Box<dyn Error>> {
     let text = fs::read_to_string(path)?;
     Ok(text
@@ -18,28 +19,31 @@ fn read_urls_from_file(path: &str) -> Result<Vec<String>, Box<dyn Error>> {
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
-    // Load the list ONCE at startup.
+    // Load the list of websites once at startup
     let urls: Vec<String> = read_urls_from_file("src/website_list.txt")?;
     if urls.is_empty() {
         eprintln!("No URLs found in src/website_list.txt");
-        return Ok(());
+        return Ok(()); // exit gracefully if no URLs
     }
 
-    // Periodic monitoring using the same in-memory vector.
+    // Main monitoring loop (runs indefinitely)
     loop {
         println!("=== Running website checks ===");
 
-        // 50 workers, 1 retry on transport errors
+        // Run checks concurrently (50 threads, retry once on transport errors)
         let results = concurrent::check_many(urls.clone(), 50, 1);
 
+        // Print individual website results
         for ws in &results {
             ws.print();
             println!("----------------------------------------");
         }
 
+        // Compute and print summary statistics
         let summary = Stats::compute(&results);
         summary.print();
 
+        // Wait 30 seconds before the next cycle
         println!("Sleeping 30 seconds before next run...\n");
         thread::sleep(Duration::from_secs(30));
     }
@@ -50,6 +54,7 @@ mod tests {
     use website_checker::status::{WebsiteStatus, CheckStatus};
     use std::time::Duration;
 
+    // Test that Google returns a valid 2xx status code within 5s
     #[test]
     fn google_returns_success() {
         let ws = WebsiteStatus::request("https://www.google.com");
@@ -61,6 +66,7 @@ mod tests {
         assert!(!ws.timestamp_utc.is_empty() && ws.timestamp_utc != "unknown");
     }
 
+    // Test that an invalid domain produces a transport error
     #[test]
     fn invalid_domain_is_transport_error() {
         let ws = WebsiteStatus::request("https://definitely-not-a-real-host.invalid");
@@ -72,6 +78,7 @@ mod tests {
         assert!(!ws.validation.body_ok);
     }
 
+    // Test that HTTP (non-HTTPS) URLs fail the HTTPS policy check
     #[test]
     fn http_url_violates_https_policy() {
         let ws = WebsiteStatus::request("http://example.com");

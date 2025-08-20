@@ -1,20 +1,22 @@
-// src/stats.rs
 use crate::status::{CheckStatus, WebsiteStatus};
 
+// Holds summary statistics for a batch of website checks.
 #[derive(Debug, Clone)]
 pub struct Stats {
-    pub total: usize,
-    pub successes: usize,
-    pub http_errors: usize,
-    pub transport_errors: usize,
-    pub avg_response_ms: f64,
-    pub uptime_pct: f64, // successes / total * 100
+    pub total: usize,            // total number of websites checked
+    pub successes: usize,        // number of successful checks (2xx)
+    pub http_errors: usize,      // number of HTTP-level errors (e.g. 404, 500)
+    pub transport_errors: usize, // number of network/connection errors
+    pub avg_response_ms: f64,    // average response time across all checks
+    pub uptime_pct: f64,         // percentage of successful checks
 }
 
 impl Stats {
+    // Compute statistics from a list of WebsiteStatus results
     pub fn compute(results: &[WebsiteStatus]) -> Self {
         let total = results.len();
         if total == 0 {
+            // If no results, return empty/default stats
             return Self {
                 total: 0,
                 successes: 0,
@@ -30,6 +32,7 @@ impl Stats {
         let mut transport_errors = 0usize;
         let mut total_ms: u128 = 0;
 
+        // Go through each result and update counters
         for r in results {
             total_ms += r.response_time.as_millis();
             match r.status {
@@ -39,6 +42,7 @@ impl Stats {
             }
         }
 
+        // Calculate averages and uptime percentage
         let avg_response_ms = (total_ms as f64) / (total as f64);
         let uptime_pct = (successes as f64) * 100.0 / (total as f64);
 
@@ -52,6 +56,7 @@ impl Stats {
         }
     }
 
+    // Print the summary statistics in a human-readable format
     pub fn print(&self) {
         println!("=== Summary ===");
         println!("Total: {}", self.total);
